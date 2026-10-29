@@ -36,8 +36,13 @@ describe('queryCatalog', () => {
     expect(queryCatalog(products, { ...base, q: 'essence' }).items.map((p) => p.id)).toEqual([1])
   })
 
-  it('filters by category, discounted price range and stock', () => {
-    expect(queryCatalog(products, { ...base, category: 'laptops' }).total).toBe(1)
+  it('filters by one or several categories', () => {
+    expect(queryCatalog(products, { ...base, categories: ['laptops'] }).total).toBe(1)
+    expect(queryCatalog(products, { ...base, categories: ['laptops', 'beauty'] }).total).toBe(3)
+    expect(parseQuery(new URLSearchParams('category=laptops,beauty')).categories).toEqual(['laptops', 'beauty'])
+  })
+
+  it('filters by discounted price range and stock', () => {
     expect(queryCatalog(products, { ...base, min: 40, max: 60 }).items.map((p) => p.id)).toEqual([3])
     expect(queryCatalog(products, { ...base, inStock: true }).items.map((p) => p.id)).toEqual([1, 2])
   })

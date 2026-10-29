@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchCatalog, fetchCategories } from '../lib/api'
 import { parseQuery, queryCatalog } from '../lib/catalog'
@@ -22,28 +22,44 @@ export default function ShopPage() {
 
   const result = useMemo(() => (data ? queryCatalog(data[0], query) : null), [data, params])
   const categories = data?.[1] ?? []
-  const categoryName = categories.find((c) => c.slug === query.category)?.name
+  const nameOf = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug
 
   /** Updates filters in the URL. Any filter change goes back to page 1. */
-  function update(changes: Record<string, string | null>) {
-    const next = new URLSearchParams(params)
-    for (const [key, value] of Object.entries(changes)) {
-      if (value === null || value === '') next.delete(key)
-      else next.set(key, value)
-    }
-    if (!('page' in changes)) next.delete('page')
-    setParams(next)
-  }
+  const update = useCallback(
+    (changes: Record<string, string | null>) => {
+      setParams((current) => {
+        const next = new URLSearchParams(current)
+        for (const [key, value] of Object.entries(changes)) {
+          if (value === null || value === '') next.delete(key)
+          else next.set(key, value)
+        }
+        if (!('page' in changes)) next.delete('page')
+        return next
+      })
+    },
+    [setParams],
+  )
 
-  const activeFilters = [
-    query.q && { key: 'q', label: `“${query.q}”` },
-    categoryName && { key: 'category', label: categoryName },
-    query.min !== null && { key: 'min', label: `From $${query.min}` },
-    query.max !== null && { key: 'max', label: `Up to $${query.max}` },
-    query.inStock && { key: 'inStock', label: 'In stock' },
-  ].filter(Boolean) as { key: string; label: string }[]
+  // One removable chip per active filter (each category gets its own chip)
+  const activeFilters: { id: string; label: string; remove: () => void }[] = [
+    ...(query.q ? [{ id: 'q', label: `“${query.q}”`, remove: () => update({ q: null }) }] : []),
+    ...query.categories.map((slug) => ({
+      id: `cat-${slug}`,
+      label: nameOf(slug),
+      remove: () => update({ category: query.categories.filter((c) => c !== slug).join(',') || null }),
+    })),
+    ...(query.min !== null ? [{ id: 'min', label: `From $${query.min}`, remove: () => update({ min: null }) }] : []),
+    ...(query.max !== null ? [{ id: 'max', label: `Up to $${query.max}`, remove: () => update({ max: null }) }] : []),
+    ...(query.inStock ? [{ id: 'stock', label: 'In stock', remove: () => update({ inStock: null }) }] : []),
+  ]
 
-  const title = query.q ? `Results for “${query.q}”` : (categoryName ?? 'All products')
+  const title = query.q
+    ? `Results for “${query.q}”`
+    : query.categories.length === 1
+      ? nameOf(query.categories[0])
+      : query.categories.length > 1
+        ? `${query.categories.length} categories`
+        : 'All products'
 
   return (
     <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
@@ -62,6 +78,13 @@ export default function ShopPage() {
         ) : (
           <Filters categories={categories} query={query} onChange={update} />
         )}
+        <button
+          type="button"
+          onClick={() => setShowFilters(false)}
+          className="mt-6 h-12 w-full rounded-full bg-ink font-bold text-white lg:hidden"
+        >
+          Show {result?.total ?? ''} products
+        </button>
       </aside>
 
       <section aria-labelledby="results-title">
@@ -88,7 +111,7 @@ export default function ShopPage() {
         {activeFilters.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {activeFilters.map((f) => (
-              <button key={f.key} type="button" onClick={() => update({ [f.key]: null })} className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-medium text-accent-dark hover:bg-orange-100">
+              <button key={f.id} type="button" onClick={f.remove} className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-sm font-medium text-accent-dark hover:bg-orange-100">
                 {f.label} <CloseIcon className="size-3.5" />
                 <span className="sr-only">Remove filter</span>
               </button>

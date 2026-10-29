@@ -15,7 +15,7 @@ export const PAGE_SIZE = 12
 
 export type CatalogQuery = {
   q: string
-  category: string
+  categories: string[]
   sort: SortKey
   min: number | null
   max: number | null
@@ -35,7 +35,8 @@ export function parseQuery(params: URLSearchParams): CatalogQuery {
   const page = Math.floor(Number(params.get('page')))
   return {
     q: params.get('q')?.trim() ?? '',
-    category: params.get('category') ?? '',
+    // Several categories are stored comma-separated: ?category=laptops,smartphones
+    categories: (params.get('category') ?? '').split(',').filter(Boolean),
     sort: SORT_OPTIONS.some((o) => o.value === sort) ? (sort as SortKey) : 'featured',
     min: num('min'),
     max: num('max'),
@@ -44,6 +45,13 @@ export function parseQuery(params: URLSearchParams): CatalogQuery {
   }
 }
 
+export const PRICE_RANGES = [
+  { label: 'Under $25', min: null, max: 25 },
+  { label: '$25 to $100', min: 25, max: 100 },
+  { label: '$100 to $500', min: 100, max: 500 },
+  { label: '$500 and above', min: 500, max: null },
+] as const
+
 /** Filters, sorts and paginates the catalog. Pure function, so it is easy to test. */
 export function queryCatalog(products: Product[], query: CatalogQuery) {
   const q = query.q.toLowerCase()
@@ -51,7 +59,7 @@ export function queryCatalog(products: Product[], query: CatalogQuery) {
   const filtered = products.filter((p) => {
     const price = finalPrice(p.price, p.discountPercentage)
     if (q && !`${p.title} ${p.brand ?? ''} ${p.category}`.toLowerCase().includes(q)) return false
-    if (query.category && p.category !== query.category) return false
+    if (query.categories.length > 0 && !query.categories.includes(p.category)) return false
     if (query.min !== null && price < query.min) return false
     if (query.max !== null && price > query.max) return false
     if (query.inStock && p.stock <= 0) return false
