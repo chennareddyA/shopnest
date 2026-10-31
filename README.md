@@ -2,7 +2,7 @@
 
 A complete online store front end: product search and filters, product pages, a persistent cart and wishlist, and a validated multi-step checkout.
 
-**Live demo:** https://YOUR-LINK.vercel.app
+**Live demo:** https://chennareddy-shop.vercel.app
 
 ![Shop page](docs/shop.png)
 
