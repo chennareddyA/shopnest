@@ -22,9 +22,17 @@ A complete online store front end: product search and filters, product pages, a 
 - **Code-split pages** so the shop loads first and other pages load on demand
 - **Unit tests** (Vitest) for catalog filtering, cart rules and form validation
 
-| Product page | Checkout |
-| --- | --- |
-| ![Product](docs/product.png) | ![Checkout](docs/checkout.png) |
+   ### Product page
+
+   ![Product page](docs/product.png)
+
+   ### Checkout flow
+
+   | 1. Shipping | 2. Delivery |
+   | --- | --- |
+   | ![Shipping step](docs/checkout-1.png) | ![Delivery step](docs/checkout-2.png) |
+   | **3. Payment** | **4. Order confirmed** |
+   | ![Payment step](docs/checkout-3.png) | ![Order confirmation](docs/checkout-4.png) |
 
 ## Tech stack
 
